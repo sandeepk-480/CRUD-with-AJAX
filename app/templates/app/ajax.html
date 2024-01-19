@@ -1,0 +1,207 @@
+<script>
+
+    document.getElementById("btn-save").addEventListener("click", ()=> {
+        
+        //Getting form data.
+        let id = document.getElementById("stuid").value
+        let nm = document.getElementById("nameid").value
+        let em = document.getElementById("emailid").value
+        let pw = document.getElementById("passwordid").value
+        let csr = document.getElementsByName("csrfmiddlewaretoken")[0].value //got the name by inspecting the page.
+
+        //Validations. 
+        if (nm==""){
+            msg = document.getElementById('msg')
+            msg.innerHTML = "Please Enter Name"
+            msg.style.display = 'block'
+            msgTime()
+        } else if (em==""){
+            msg = document.getElementById('msg')
+            msg.innerHTML = "Please Enter Email"
+            msg.style.display = 'block'
+            msgTime()
+        } else if (pw==""){
+            msg = document.getElementById('msg')
+            msg.innerHTML = "Please Enter Password"
+            msg.style.display = 'block'
+            msgTime()
+        } else{
+
+            // Making Ajax Call
+            mydata = {id:id, name:nm, email:em, password:pw}
+
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST",{% url "add_data" %}, true)
+            
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.setRequestHeader("X-CSRFToken", csr);
+            
+            xhr.onload= ()=>{
+                if (xhr.status === 200){
+                    // Getting Value of Status which we gave in view
+                    b = JSON.parse(xhr.response)
+                    // This has data which is passed from view and we will use that in updating.
+                    data = b.updatedStu
+                    
+                    if (b.status == 'Saved'){
+                        msg = document.getElementById('msg')
+                        msg.innerHTML = "Form Submitted Successfully"
+                        msg.style.display = 'block'
+                        msgTime()
+                        updated();
+                        //Reset the form
+                        d = document.getElementById('myForm')
+                        d.reset()
+                    }
+                    if (b.status == 0){
+                        msg = document.getElementById('msg')
+                        msg.innerHTML = "Unable to Save Form"
+                        msg.style.display = 'block'
+                        msgTime()
+                    }
+                    
+                } else {
+                    msg = document.getElementById('msg')
+                    msg.innerHTML = "Problem with Request"
+                    msg.style.display = 'block'
+                    msgTime()
+                }
+            }
+
+            xhr.send(JSON.stringify(mydata))
+
+        }
+        
+    })
+
+
+    // Updated Data
+    function updated(){
+        let a = data
+        let output = ''
+        for (let i=0; i<a.length; i++){
+            output += 
+            `
+                <tr>
+                    <td>${a[i].id}</td>
+                    <td>${a[i].name}</td>
+                    <td>${a[i].email}</td>
+                    <td>${a[i].password}</td>
+                    <td>
+                        <input type="button" data-sid="${a[i].id}" class="btn btn-warning btn-sm btn-edit"  value="Edit">
+                        <input type="button" data-sid="${a[i].id}" class="btn btn-danger btn-sm btn-del"  value="Delete">
+                    </td>
+                </tr>
+            `            
+        };
+        a = document.getElementById('tbody')
+        a.innerHTML = output
+    }
+
+
+    // Delete Data.
+    document.querySelector('#tbody').addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-del')){
+            let id = e.target.getAttribute('data-sid')
+            mydata = {'sid':id}
+
+            //Ajax Call
+            let csr = document.getElementsByName("csrfmiddlewaretoken")[0].value
+
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST",{% url "del_data" %}, true)
+            
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.setRequestHeader("X-CSRFToken", csr);
+            
+            xhr.onload= ()=>{
+                if (xhr.status === 200){
+                    // Getting Value of Status which we gave in view                    
+                    b = JSON.parse(xhr.response)                    
+                    // This has data which is passed from view and we will use that in updating.
+                    data = b.updatedStu
+                    
+                    if (b.status == 'deleted'){
+                        msg = document.getElementById('msg')
+                        msg.innerHTML = "Data Deleted Successfully"
+                        msg.style.display = 'block'
+                        msgTime()
+                        updated();
+                        
+                    }
+                    if (b.status == 0){
+                        msg = document.getElementById('msg')
+                        msg.innerHTML = "Unable to delete Form"
+                        msg.style.display = 'block'
+                        msgTime()
+                    }
+                    
+                } else {
+                    msg = document.getElementById('msg')
+                    msg.innerHTML = "Problem with Request"
+                    msg.style.display = 'block'
+                    msgTime()
+                }
+            }
+            xhr.send(JSON.stringify(mydata))
+            
+        }
+    })
+
+
+    // Edit Data.
+    document.querySelector('#tbody').addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-edit')){
+            let id = e.target.getAttribute('data-sid')
+            mydata = {'sid':id}
+
+            //Ajax Call
+            let csr = document.getElementsByName("csrfmiddlewaretoken")[0].value
+
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST",{% url "edit_data" %}, true)
+            
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.setRequestHeader("X-CSRFToken", csr);
+            
+            xhr.onload= ()=>{
+                if (xhr.status === 200){
+                    // Getting Value of Status which we gave in view                    
+                    b = JSON.parse(xhr.response)                    
+                    // This has data which is passed from view and we will use that in updating.
+                    data = b.updatedStu
+                    let id = document.getElementById("stuid")
+                    let nm = document.getElementById("nameid")
+                    let em = document.getElementById("emailid")
+                    let pw = document.getElementById("passwordid")
+                    id.value = data.id
+                    nm.value = data.name
+                    em.value = data.email
+                    pw.value = data.password
+                    
+                    if (b.status == 'edited'){
+                        //console.log("Data Edited Successfully")                                   
+                    }
+                    if (b.status == 0){
+                        //console.log("Unable to edit Form")
+                    }
+                    
+                } else {
+                    //console.log('Problem with Request')
+                }
+            }
+            xhr.send(JSON.stringify(mydata))
+        }
+    })
+
+    // Message Timeout
+    function msgTime(){
+        setTimeout(() => {
+            let message = document.querySelector('#msg');
+            if (message) {
+                message.style.display = 'none';
+            }
+        }, 3000);
+    }
+
+</script>
